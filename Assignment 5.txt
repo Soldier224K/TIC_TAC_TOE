@@ -1,3 +1,4 @@
 Assignment 5 :- Real-Time Tic Tac Toe
 
-Link :- https://itm-real-time-tic-tac-toe-game.netlify.app/
+Netlify Link :- https://itm-real-time-tic-tac-toe-game.netlify.app/
+Render Live URL :- https://tic-tac-toe-qxvh.onrender.com/

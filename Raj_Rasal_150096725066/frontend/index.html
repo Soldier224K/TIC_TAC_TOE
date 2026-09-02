@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TicTacToe.com | Real-Time Chess.com Edition</title>
+  <meta name="description" content="Play real-time multiplayer Tic-Tac-Toe on a Chess.com style checkered arena with live timers, move notation, and MongoDB persistence.">
+
+  <!-- Google Fonts: Inter & Montserrat -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Montserrat:wght@600;700;800&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Confetti Canvas Container for Winning Celebration -->
+  <div id="confetti-holder" class="confetti-holder"></div>
+
+  <!-- APP SHELL: LEFT SIDEBAR + MAIN ARENA -->
+  <div class="chess-app-layout" id="main-app-layout">
+
+    <!-- 1. LEFT VERTICAL NAVIGATION SIDEBAR -->
+    <aside class="chess-sidebar">
+      <div class="sidebar-top">
+        <a href="#" class="sidebar-logo" title="TicTacToe.com">
+          <div class="logo-icon"><i class="fa-solid fa-chess-knight"></i></div>
+          <span class="logo-text">TicTacToe<span>.com</span></span>
+        </a>
+
+        <nav class="sidebar-nav">
+          <button class="nav-item active" id="nav-play" title="Live Game Arena">
+            <i class="fa-solid fa-chess-board"></i>
+            <span class="nav-label">Play</span>
+          </button>
+          <button class="nav-item" id="nav-history" title="View Match History & MongoDB Archive">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span class="nav-label">History</span>
+          </button>
+          <button class="nav-item" id="nav-rules" title="Game Rules & Guide">
+            <i class="fa-solid fa-book-open"></i>
+            <span class="nav-label">Rules</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="sidebar-bottom">
+        <button id="sound-btn" class="nav-item" title="Toggle Sound">
+          <i class="fa-solid fa-volume-high"></i>
+          <span class="nav-label">Sound</span>
+        </button>
+        <div class="sidebar-user" id="sidebar-user-pill">
+          <div class="user-avatar-sm">
+            <i class="fa-solid fa-user"></i>
+          </div>
+          <span class="user-handle-sm" id="sidebar-handle">Guest</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 2. MAIN CENTER ARENA (BOARD + PLAYERS) -->
+    <main class="chess-arena" id="arena-main">
+      <div class="arena-content">
+
+        <!-- TOP PLAYER BAR (Opponent) -->
+        <div class="player-bar top-player" id="top-player-bar">
+          <div class="player-profile">
+            <div class="player-avatar opponent-avatar" id="top-avatar-box">
+              <i class="fa-solid fa-robot" id="top-avatar-icon"></i>
+            </div>
+            <div class="player-info">
+              <div class="name-rating">
+                <span class="player-username" id="top-player-name">Opponent</span>
+                <span class="player-rating" id="top-player-rating">(1200)</span>
+                <span class="symbol-tag symbol-tag-o" id="top-player-symbol">O</span>
+              </div>
+              <span class="player-country"><i class="fa-solid fa-globe"></i> International</span>
+            </div>
+          </div>
+          <div class="chess-clock" id="top-player-clock">
+            <span class="clock-time" id="top-clock-time">03:00</span>
+          </div>
+        </div>
+
+        <!-- 3x3 CHESS.COM CHECKERED BOARD -->
+        <div class="board-frame" id="board-frame">
+          <div class="board-grid" id="board">
+            <!-- 9 cells generated via script.js -->
+          </div>
+        </div>
+
+        <!-- BOTTOM PLAYER BAR (You) -->
+        <div class="player-bar bottom-player" id="bottom-player-bar">
+          <div class="player-profile">
+            <div class="player-avatar my-avatar" id="bottom-avatar-box">
+              <i class="fa-solid fa-user-astronaut" id="bottom-avatar-icon"></i>
+            </div>
+            <div class="player-info">
+              <div class="name-rating">
+                <span class="player-username" id="bottom-player-name">You</span>
+                <span class="player-rating" id="bottom-player-rating">(1200)</span>
+                <span class="symbol-tag symbol-tag-x" id="bottom-player-symbol">X</span>
+              </div>
+              <span class="player-country"><i class="fa-solid fa-globe"></i> Ready</span>
+            </div>
+          </div>
+          <div class="chess-clock" id="bottom-player-clock">
+            <span class="clock-time" id="bottom-clock-time">03:00</span>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- 3. RIGHT SIDEBAR (GAME HUB, MOVES NOTATION & CONTROLS) -->
+    <aside class="chess-sidebar-right">
+      
+      <!-- TAB NAVIGATION -->
+      <div class="panel-tabs">
+        <button class="tab-btn active" id="tab-moves-btn">
+          <i class="fa-solid fa-bolt"></i> Live Game
+        </button>
+        <button class="tab-btn" id="tab-history-btn">
+          <i class="fa-solid fa-database"></i> Match Archive
+        </button>
+      </div>
+
+      <!-- TAB 1: LIVE GAME & MOVES NOTATION -->
+      <div class="panel-tab-content active" id="tab-moves-content">
+        <div class="game-meta-header">
+          <div class="game-type-badge">
+            <i class="fa-solid fa-stopwatch"></i>
+            <span>3 min Blitz • Authoritative</span>
+          </div>
+          <div class="eval-status" id="eval-status">
+            <span class="eval-dot"></span>
+            <span id="game-status-label">Waiting for players</span>
+          </div>
+        </div>
+
+        <!-- NOTATION MOVE LIST TABLE -->
+        <div class="moves-container">
+          <div class="moves-header">
+            <span class="col-num">#</span>
+            <span class="col-white"><span class="badge-white">X</span> White</span>
+            <span class="col-black"><span class="badge-black">O</span> Black</span>
+          </div>
+          <div class="moves-list" id="moves-list">
+            <div class="empty-moves" id="empty-moves-text">Game moves will appear here...</div>
+          </div>
+        </div>
+
+        <!-- BOTTOM ACTION BAR -->
+        <div class="panel-actions">
+          <button id="rematch-btn" class="chess-btn chess-btn-green">
+            <i class="fa-solid fa-rotate-right"></i>
+            <span>New Game / Rematch</span>
+          </button>
+          <div class="sub-actions">
+            <button id="reset-btn" class="chess-btn chess-btn-dark" title="Reset Board">
+              <i class="fa-solid fa-arrows-rotate"></i> Reset
+            </button>
+            <button id="view-db-btn" class="chess-btn chess-btn-dark" title="View MongoDB Archive">
+              <i class="fa-solid fa-server"></i> DB Archive
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: FIREBASE MATCH ARCHIVE -->
+      <div class="panel-tab-content" id="tab-history-content">
+        <div class="archive-header">
+          <div class="archive-title">
+            <i class="fa-solid fa-fire" style="color: #f59e0b;"></i>
+            <span>Firebase Match Archive</span>
+          </div>
+          <button id="refresh-archive-btn" class="icon-btn-sm" title="Refresh">
+            <i class="fa-solid fa-arrows-rotate"></i>
+          </button>
+        </div>
+
+        <div class="archive-list" id="archive-list">
+          <!-- Dynamically loaded from MongoDB -->
+        </div>
+      </div>
+
+    </aside>
+
+  </div>
+
+  <!-- 4. CHESS.COM "PLAY ONLINE" LOGIN MODAL OVERLAY -->
+  <div id="login-modal" class="chess-modal-overlay">
+    <div class="chess-modal-card">
+      <div class="modal-chess-header">
+        <div class="header-knight">
+          <i class="fa-solid fa-chess-knight"></i>
+        </div>
+        <h2>Play Real-Time Tic-Tac-Toe</h2>
+        <p>Live 2-Player Match on Chess.com Edition</p>
+      </div>
+
+      <div class="modal-form-body">
+        <div class="time-control-selector">
+          <div class="time-pill selected">
+            <i class="fa-solid fa-bolt"></i>
+            <div class="time-text">
+              <strong>3 min</strong>
+              <span>Blitz</span>
+            </div>
+          </div>
+          <div class="time-pill">
+            <i class="fa-solid fa-fire"></i>
+            <div class="time-text">
+              <strong>1 min</strong>
+              <span>Bullet</span>
+            </div>
+          </div>
+          <div class="time-pill">
+            <i class="fa-solid fa-stopwatch"></i>
+            <div class="time-text">
+              <strong>10 min</strong>
+              <span>Rapid</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="username-input">Player Handle</label>
+          <div class="input-container">
+            <i class="fa-solid fa-user"></i>
+            <input 
+              type="text" 
+              id="username-input" 
+              placeholder="e.g. MagnusCarlsen" 
+              maxlength="16" 
+              autofocus 
+              required
+            />
+          </div>
+          <p id="login-error-msg" class="form-error hidden"></p>
+        </div>
+
+        <button id="join-game-btn" class="chess-btn chess-btn-green btn-large">
+          <i class="fa-solid fa-play"></i>
+          <span>Play Online</span>
+        </button>
+
+        <div class="lobby-capacity-info">
+          <i class="fa-solid fa-circle-nodes"></i>
+          <span id="lobby-status-text">0/2 Players Connected</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. CHESS.COM "GAME OVER" RESULT MODAL WITH RICH ANIMATIONS -->
+  <div id="game-over-modal" class="chess-modal-overlay hidden">
+    <div class="chess-modal-card game-over-card" id="game-over-card-box">
+      
+      <!-- Animated Badge Box (Win Trophy / Defeat Broken Shield / Draw Scale) -->
+      <div class="game-over-header">
+        <div class="result-badge-anim-container">
+          <div class="crown-icon-box" id="result-trophy-box">
+            <i class="fa-solid fa-crown" id="result-icon"></i>
+          </div>
+          <div class="burst-ring" id="burst-ring"></div>
+        </div>
+        <h2 id="game-over-title">White Wins!</h2>
+        <p id="game-over-reason">Won by 3-in-a-row</p>
+      </div>
+
+      <div class="rating-change-box" id="rating-change-box">
+        <div class="rating-row">
+          <span id="winner-name-display">Magnus</span>
+          <span class="rating-badge rating-up" id="winner-rating-badge">+8 (1208)</span>
+        </div>
+        <div class="rating-row opponent-rating-row">
+          <span id="loser-name-display">Hikaru</span>
+          <span class="rating-badge rating-down" id="loser-rating-badge">-8 (1192)</span>
+        </div>
+      </div>
+
+      <div class="game-over-stats">
+        <div class="stat-col">
+          <span class="stat-lbl">Moves</span>
+          <span class="stat-val" id="modal-moves-count">5</span>
+        </div>
+        <div class="stat-col">
+          <span class="stat-lbl">Accuracy</span>
+          <span class="stat-val text-green">100%</span>
+        </div>
+        <div class="stat-col">
+          <span class="stat-lbl">MongoDB</span>
+          <span class="stat-val text-green" id="modal-db-status">Saved</span>
+        </div>
+      </div>
+
+      <div class="modal-button-group">
+        <button id="modal-rematch-btn" class="chess-btn chess-btn-green">
+          <i class="fa-solid fa-rotate-right"></i> Rematch
+        </button>
+        <button id="modal-close-btn" class="chess-btn chess-btn-dark">
+          Review Board
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. RULES & HELP MODAL -->
+  <div id="rules-modal" class="chess-modal-overlay hidden">
+    <div class="chess-modal-card">
+      <div class="modal-chess-header">
+        <div class="header-knight">
+          <i class="fa-solid fa-book-open"></i>
+        </div>
+        <h2>TicTacToe.com Rules</h2>
+        <p>Real-Time Chess.com Edition Guide</p>
+      </div>
+      <div class="modal-form-body">
+        <ul class="rules-list">
+          <li><strong>1. Turn Time:</strong> 3-minute blitz clock. Your clock runs only when it's your turn.</li>
+          <li><strong>2. Alignment:</strong> Connect 3 symbols (Row, Column, or Diagonal) to win.</li>
+          <li><strong>3. White & Black:</strong> First player plays White (X), second plays Black (O).</li>
+          <li><strong>4. Database Persistence:</strong> Every completed game is automatically logged to MongoDB.</li>
+        </ul>
+        <button id="rules-close-btn" class="chess-btn chess-btn-green">
+          Got It!
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Socket.io and Client Script -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
